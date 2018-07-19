@@ -1,19 +1,18 @@
 
 import * as functions from 'firebase-functions'
-import { adminDB, firestoreDB } from '../../data/index';
-import { Comment } from '../../domain/comments/comment';
-import * as express from 'express';
-import { User } from '../../domain/users/user';
-import { HttpStatusCode } from '../../data/httpStatusCode';
-import { SocialError } from '../../domain/common/index';
-import { Profile } from '../../domain/users/profile';
-import { Post } from '../../domain/posts/post';
-import { UserTie } from '../../domain/circles/index';
-import { Graph } from '../../domain/graphs/index';
-
+import { adminDB, firestoreDB } from '../../data/index'
+import { Comment } from '../../domain/comments/comment'
+import * as express from 'express'
+import { User } from '../../domain/users/user'
+import { HttpStatusCode } from '../../data/httpStatusCode'
+import { SocialError } from '../../domain/common/index'
+import { Profile } from '../../domain/users/profile'
+import { Post } from '../../domain/posts/post'
+import { UserTie } from '../../domain/circles/index'
+import { Graph } from '../../domain/graphs/index'
 
 const app = express()
-app.disable("x-powered-by")
+app.disable('x-powered-by')
 
 /**
  * Get users by user identifier list
@@ -22,7 +21,7 @@ app.disable("x-powered-by")
 const getUserByListId = async (userIdList: string[]) => {
     return new Promise<{[userId: string]: User}>((resolve, reject) => {
         let users: {[userId: string]: User} = {}
-        if( userIdList && userIdList.length > 0) {
+        if ( userIdList && userIdList.length > 0) {
             userIdList.forEach((userId: string) => {
                firestoreDB.collection('userInfo').doc(userId).get().then((result) => {
                   let user = result.data() as User
@@ -46,14 +45,13 @@ const getUserByListId = async (userIdList: string[]) => {
  */
 app.post('/', async (request, response) => {
     const userIdList = JSON.parse(request.body)
-    if(userIdList && Array.isArray(userIdList) && userIdList.length > 0) {
+    if (userIdList && Array.isArray(userIdList) && userIdList.length > 0) {
         getUserByListId(userIdList)
         .then((users) => {
             response.status(HttpStatusCode.OK).send(users)
         })
 
-    }
-    else {
+    } else {
         // Send baack bad request happened
         return response.status(HttpStatusCode.BadRequest)
         .send(new SocialError('UserService/UserIdListNotValid',
@@ -70,20 +68,17 @@ app.post('/', async (request, response) => {
  */
 export const users =  functions.https.onRequest(app)
 
-
 /**
  * Handle on update user information
  */
 export const onUpdateUserInfo = functions.firestore.document('userInfo/{userId}')
-.onUpdate((change, context) => {
+.onUpdate((dataSnapshot, context) => {
     return new Promise<void>((resolve, reject) => {
-       const userId: string = context.params.userId
-       // removed type constraint Profile for compile
-       const previousUserInfo = change.before.data()
-       // removed type constraint Profile for compile
-       const userInfo =  change.after.data()
+        const userId: string = context.params.userId
+        const previousUserInfo = dataSnapshot.before.data() as User
+        const userInfo = dataSnapshot.after.data() as User
 
-       if(previousUserInfo.avatar === userInfo.avatar && previousUserInfo.fullName === userInfo.fullName) {
+       if (previousUserInfo.avatar === userInfo.avatar && previousUserInfo.fullName === userInfo.fullName) {
            resolve()
        } else {
 
@@ -93,7 +88,7 @@ export const onUpdateUserInfo = functions.firestore.document('userInfo/{userId}'
            const rightUserTieRef = firestoreDB.collection('graphs:users').where('rightNode', '==', userId)
     
            // Get a new write batch
-           var batch = firestoreDB.batch();
+           var batch = firestoreDB.batch()
     
            postsRef.get().then((posts) => {
                 commentsRef.get().then((comments) => {
@@ -146,7 +141,6 @@ export const onUpdateUserInfo = functions.firestore.document('userInfo/{userId}'
                 })
            })
        }
-
 
     })
 })
